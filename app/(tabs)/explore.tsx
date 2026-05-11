@@ -1,112 +1,166 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { useCallback, useRef, useState } from 'react';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View, useColorScheme } from 'react-native';
 
-import { Collapsible } from '@/components/ui/collapsible';
-import { ExternalLink } from '@/components/external-link';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Fonts } from '@/constants/theme';
+import { usePetStore } from '@/store/use-pet-store';
+import { usePlayerStore } from '@/store/use-player-store';
+import { useTasksStore } from '@/store/use-tasks-store';
+import { TaskCategory } from '@/store/types';
 
-export default function TabTwoScreen() {
+interface PresetTask {
+  id: string;
+  label: string;
+  category: TaskCategory;
+  pointValue: number;
+}
+
+const PRESET_TASKS: PresetTask[] = [
+  { id: 'wash-dishes',    label: 'Wash the dishes',    category: 'kitchen',     pointValue: 20 },
+  { id: 'wipe-counters',  label: 'Wipe down counters', category: 'kitchen',     pointValue: 15 },
+  { id: 'clean-stovetop', label: 'Clean the stovetop', category: 'kitchen',     pointValue: 30 },
+  { id: 'scrub-toilet',   label: 'Scrub the toilet',   category: 'bathroom',    pointValue: 40 },
+  { id: 'wipe-sink',      label: 'Wipe sink & mirror', category: 'bathroom',    pointValue: 20 },
+  { id: 'make-bed',       label: 'Make the bed',       category: 'bedroom',     pointValue: 10 },
+  { id: 'tidy-floor',     label: 'Tidy the floor',     category: 'bedroom',     pointValue: 15 },
+  { id: 'vacuum',         label: 'Vacuum the floor',   category: 'living_room', pointValue: 30 },
+  { id: 'dust-surfaces',  label: 'Dust surfaces',      category: 'living_room', pointValue: 20 },
+  { id: 'take-out-trash', label: 'Take out the trash', category: 'trash',       pointValue: 15 },
+];
+
+const CATEGORY_EMOJI: Record<TaskCategory, string> = {
+  kitchen:     '🍳',
+  bathroom:    '🚿',
+  bedroom:     '🛏',
+  living_room: '🛋',
+  laundry:     '👕',
+  trash:       '🗑',
+  other:       '📦',
+};
+
+export default function TasksScreen() {
+  const addTask = useTasksStore((s) => s.addTask);
+  const earnPoints = usePlayerStore((s) => s.earnPoints);
+  const recordActivity = usePlayerStore((s) => s.recordActivity);
+  const care = usePetStore((s) => s.care);
+  const scheme = useColorScheme();
+
+  const [completedIds, setCompletedIds] = useState<Set<string>>(new Set());
+  const [celebration, setCelebration] = useState<string | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleCheck = useCallback(
+    (task: PresetTask) => {
+      if (completedIds.has(task.id)) return;
+      addTask({ ...task, completedAt: Date.now() });
+      earnPoints(task.pointValue);
+      recordActivity();
+      care();
+      setCompletedIds((prev) => new Set(prev).add(task.id));
+      if (timerRef.current) clearTimeout(timerRef.current);
+      setCelebration(`✨ +${task.pointValue} pts! Keep going!`);
+      timerRef.current = setTimeout(() => setCelebration(null), 2000);
+    },
+    [completedIds, addTask, earnPoints, recordActivity, care],
+  );
+
+  const isDark = scheme === 'dark';
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-      headerImage={
-        <IconSymbol
-          size={310}
-          color="#808080"
-          name="chevron.left.forwardslash.chevron.right"
-          style={styles.headerImage}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText
-          type="title"
-          style={{
-            fontFamily: Fonts.rounded,
-          }}>
-          Explore
-        </ThemedText>
-      </ThemedView>
-      <ThemedText>This app includes example code to help you get started.</ThemedText>
-      <Collapsible title="File-based routing">
-        <ThemedText>
-          This app has two screens:{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/explore.tsx</ThemedText>
-        </ThemedText>
-        <ThemedText>
-          The layout file in <ThemedText type="defaultSemiBold">app/(tabs)/_layout.tsx</ThemedText>{' '}
-          sets up the tab navigator.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/router/introduction">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Android, iOS, and web support">
-        <ThemedText>
-          You can open this project on Android, iOS, and the web. To open the web version, press{' '}
-          <ThemedText type="defaultSemiBold">w</ThemedText> in the terminal running this project.
-        </ThemedText>
-      </Collapsible>
-      <Collapsible title="Images">
-        <ThemedText>
-          For static images, you can use the <ThemedText type="defaultSemiBold">@2x</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">@3x</ThemedText> suffixes to provide files for
-          different screen densities
-        </ThemedText>
-        <Image
-          source={require('@/assets/images/react-logo.png')}
-          style={{ width: 100, height: 100, alignSelf: 'center' }}
-        />
-        <ExternalLink href="https://reactnative.dev/docs/images">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Light and dark mode components">
-        <ThemedText>
-          This template has light and dark mode support. The{' '}
-          <ThemedText type="defaultSemiBold">useColorScheme()</ThemedText> hook lets you inspect
-          what the user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Animations">
-        <ThemedText>
-          This template includes an example of an animated component. The{' '}
-          <ThemedText type="defaultSemiBold">components/HelloWave.tsx</ThemedText> component uses
-          the powerful{' '}
-          <ThemedText type="defaultSemiBold" style={{ fontFamily: Fonts.mono }}>
-            react-native-reanimated
-          </ThemedText>{' '}
-          library to create a waving hand animation.
-        </ThemedText>
-        {Platform.select({
-          ios: (
-            <ThemedText>
-              The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
-              component provides a parallax effect for the header image.
-            </ThemedText>
-          ),
+    <ThemedView style={styles.container}>
+      <View style={styles.header}>
+        <ThemedText type="title">Today's Tasks</ThemedText>
+        <View style={styles.subrow}>
+          <ThemedText style={styles.count}>
+            {completedIds.size}/{PRESET_TASKS.length} done
+          </ThemedText>
+          {celebration && (
+            <View style={styles.celebrationPill}>
+              <Text style={styles.celebrationText}>{celebration}</Text>
+            </View>
+          )}
+        </View>
+      </View>
+
+      <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
+        {PRESET_TASKS.map((task) => {
+          const done = completedIds.has(task.id);
+          return (
+            <TouchableOpacity
+              key={task.id}
+              style={[
+                styles.taskRow,
+                isDark
+                  ? done ? styles.taskRowDoneDark  : styles.taskRowDark
+                  : done ? styles.taskRowDoneLight : styles.taskRowLight,
+              ]}
+              onPress={() => handleCheck(task)}
+              activeOpacity={done ? 1 : 0.7}
+              disabled={done}
+            >
+              <View style={[styles.checkbox, done && styles.checkboxDone]}>
+                {done && <Text style={styles.checkmark}>✓</Text>}
+              </View>
+              <View style={styles.taskInfo}>
+                <ThemedText style={[styles.taskLabel, done && styles.taskLabelDone]}>
+                  {task.label}
+                </ThemedText>
+                <ThemedText style={styles.categoryLabel}>
+                  {CATEGORY_EMOJI[task.category]} {task.category.replace('_', ' ')}
+                </ThemedText>
+              </View>
+              <Text style={[styles.pointsText, done ? styles.pointsDone : styles.pointsPending]}>
+                +{task.pointValue}
+              </Text>
+            </TouchableOpacity>
+          );
         })}
-      </Collapsible>
-    </ParallaxScrollView>
+      </ScrollView>
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
+  container: { flex: 1, paddingTop: 60, paddingHorizontal: 20 },
+  header: { marginBottom: 20, gap: 8 },
+  subrow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  count: { opacity: 0.5, fontSize: 14 },
+  celebrationPill: {
+    backgroundColor: '#d4f0b8',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
   },
-  titleContainer: {
+  celebrationText: { color: '#2a5a1a', fontWeight: '600', fontSize: 13 },
+  list: { gap: 10, paddingBottom: 40 },
+  taskRow: {
     flexDirection: 'row',
-    gap: 8,
+    alignItems: 'center',
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 14,
+    gap: 12,
   },
+  taskRowLight:     { backgroundColor: '#f8f9fa', borderColor: '#e2e5e8' },
+  taskRowDark:      { backgroundColor: '#1e2124', borderColor: '#2e3236' },
+  taskRowDoneLight: { backgroundColor: '#eef8ee', borderColor: '#b8ddb8' },
+  taskRowDoneDark:  { backgroundColor: '#182518', borderColor: '#2a4a2a' },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#aaa',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxDone: { backgroundColor: '#4caf50', borderColor: '#4caf50' },
+  checkmark: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  taskInfo: { flex: 1, gap: 3 },
+  taskLabel: { fontSize: 16, fontWeight: '500' },
+  taskLabelDone: { opacity: 0.45 },
+  categoryLabel: { fontSize: 12, opacity: 0.5, textTransform: 'capitalize' },
+  pointsText: { fontWeight: '700', fontSize: 15 },
+  pointsPending: { color: '#0a7ea4' },
+  pointsDone: { color: '#4caf50' },
 });
