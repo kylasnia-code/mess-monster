@@ -1,98 +1,131 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import { deriveMood, usePetStore } from '@/store/use-pet-store';
+import { usePlayerStore } from '@/store/use-player-store';
+
+const MOOD_CONFIG = {
+  thriving: {
+    emoji: '🌟',
+    bg: '#b8f5c8',
+    darkBg: '#1a4d2e',
+    message: 'Nilly is absolutely thriving!',
+  },
+  happy: {
+    emoji: '😊',
+    bg: '#d4f0b8',
+    darkBg: '#2a4a1a',
+    message: 'Nilly is happy and content.',
+  },
+  neutral: {
+    emoji: '😐',
+    bg: '#f5f0c0',
+    darkBg: '#3d3a10',
+    message: 'Nilly could use some attention.',
+  },
+  sad: {
+    emoji: '😢',
+    bg: '#fcd9a8',
+    darkBg: '#4d2e10',
+    message: 'Nilly is feeling neglected...',
+  },
+  sick: {
+    emoji: '🤒',
+    bg: '#f5b8b8',
+    darkBg: '#4d1a1a',
+    message: 'Nilly is sick. Please help her!',
+  },
+} as const;
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const lastCaredAt = usePetStore((s) => s.lastCaredAt);
+  const mood = deriveMood(lastCaredAt);
+  const availablePoints = usePlayerStore((s) => s.availablePoints());
+  const streak = usePlayerStore((s) => s.streak);
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
+  const config = MOOD_CONFIG[mood];
+
+  return (
+    <ThemedView
+      style={styles.container}
+      lightColor={config.bg}
+      darkColor={config.darkBg}
+    >
+      <View style={styles.header}>
+        <ThemedText type="defaultSemiBold" style={styles.points}>
+          ⭐ {availablePoints} pts
         </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
+        {streak > 0 && (
+          <ThemedText type="defaultSemiBold" style={styles.streak}>
+            🔥 {streak}d streak
+          </ThemedText>
+        )}
+      </View>
+
+      <View style={styles.monsterContainer}>
+        <View style={styles.monsterBody}>
+          <ThemedText style={styles.monsterEmoji}>{config.emoji}</ThemedText>
+          <ThemedText style={styles.nilly}>Nilly</ThemedText>
+        </View>
+      </View>
+
+      <View style={styles.footer}>
+        <ThemedText type="subtitle" style={styles.moodLabel}>
+          {mood.charAt(0).toUpperCase() + mood.slice(1)}
         </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+        <ThemedText style={styles.moodMessage}>{config.message}</ThemedText>
+      </View>
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
+  container: {
+    flex: 1,
+    paddingTop: 60,
+    paddingHorizontal: 24,
+  },
+  header: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  points: {
+    fontSize: 18,
+  },
+  streak: {
+    fontSize: 18,
+  },
+  monsterContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  monsterBody: {
+    alignItems: 'center',
+    gap: 12,
+  },
+  monsterEmoji: {
+    fontSize: 140,
+    lineHeight: 160,
+  },
+  nilly: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    letterSpacing: 2,
+  },
+  footer: {
+    alignItems: 'center',
+    paddingBottom: 48,
     gap: 8,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  moodLabel: {
+    fontSize: 22,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  moodMessage: {
+    fontSize: 16,
+    textAlign: 'center',
+    opacity: 0.8,
   },
 });
