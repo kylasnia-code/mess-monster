@@ -24,4 +24,5 @@ export interface PlayerProfile {
   spentPoints: number;
   streak: number; // consecutive days with at least one task
   lastActiveDay: string; // YYYY-MM-DD — used to calculate streak
+  selectedMonster: 'nilly' | 'luna' | null;
 }
