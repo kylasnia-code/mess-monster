@@ -2,41 +2,33 @@ import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { useMonsterTheme } from '@/hooks/use-monster-theme';
 import { deriveMood, usePetStore } from '@/store/use-pet-store';
 import { usePlayerStore } from '@/store/use-player-store';
 
-const MOOD_CONFIG = {
-  thriving: {
-    emoji: '🌟',
-    bg: '#b8f5c8',
-    darkBg: '#1a4d2e',
-    message: (name: string) => `${name} is absolutely thriving!`,
-  },
-  happy: {
-    emoji: '😊',
-    bg: '#d4f0b8',
-    darkBg: '#2a4a1a',
-    message: (name: string) => `${name} is happy and content.`,
-  },
-  neutral: {
-    emoji: '😐',
-    bg: '#f5f0c0',
-    darkBg: '#3d3a10',
-    message: (name: string) => `${name} could use some attention.`,
-  },
-  sad: {
-    emoji: '😢',
-    bg: '#fcd9a8',
-    darkBg: '#4d2e10',
-    message: (name: string) => `${name} is feeling neglected...`,
-  },
-  sick: {
-    emoji: '🤒',
-    bg: '#f5b8b8',
-    darkBg: '#4d1a1a',
-    message: (name: string) => `${name} is sick. Please help!`,
-  },
-} as const;
+/**
+ * Mood config factory — returns palette-aware background colors.
+ * Nilly uses green-to-red gradient; Luna uses dark purple-to-red gradient.
+ */
+function getMoodConfig(monster: 'nilly' | 'luna') {
+  if (monster === 'luna') {
+    return {
+      thriving: { emoji: '🌟', bg: '#2a0a3a', darkBg: '#1a0a2a' },
+      happy:    { emoji: '😊', bg: '#2a0a30', darkBg: '#180a20' },
+      neutral:  { emoji: '😐', bg: '#2a1a2a', darkBg: '#1a1018' },
+      sad:      { emoji: '😢', bg: '#3a1020', darkBg: '#2a0a18' },
+      sick:     { emoji: '🤒', bg: '#4a1020', darkBg: '#3a0a14' },
+    } as const;
+  }
+  // Nilly (default)
+  return {
+    thriving: { emoji: '🌟', bg: '#b8f5c8', darkBg: '#1a4d2e' },
+    happy:    { emoji: '😊', bg: '#d4f0b8', darkBg: '#2a4a1a' },
+    neutral:  { emoji: '😐', bg: '#f5f0c0', darkBg: '#3d3a10' },
+    sad:      { emoji: '😢', bg: '#fcd9a8', darkBg: '#4d2e10' },
+    sick:     { emoji: '🤒', bg: '#f5b8b8', darkBg: '#4d1a1a' },
+  } as const;
+}
 
 export default function HomeScreen() {
   const lastCaredAt = usePetStore((s) => s.lastCaredAt);
@@ -45,9 +37,19 @@ export default function HomeScreen() {
   const streak = usePlayerStore((s) => s.streak);
   const monsterName = usePlayerStore((s) => s.monsterName);
   const selectedMonster = usePlayerStore((s) => s.selectedMonster);
+  const { accent, monster } = useMonsterTheme();
 
-  const config = MOOD_CONFIG[mood];
+  const moodConfig = getMoodConfig(monster);
+  const config = moodConfig[mood];
   const displayName = monsterName || (selectedMonster === 'luna' ? 'Luna' : 'Nilly');
+
+  const moodMessages = {
+    thriving: `${displayName} is absolutely thriving!`,
+    happy: `${displayName} is happy and content.`,
+    neutral: `${displayName} could use some attention.`,
+    sad: `${displayName} is feeling neglected...`,
+    sick: `${displayName} is sick. Please help!`,
+  };
 
   return (
     <ThemedView
@@ -69,7 +71,9 @@ export default function HomeScreen() {
       <View style={styles.monsterContainer}>
         <View style={styles.monsterBody}>
           <ThemedText style={styles.monsterEmoji}>{config.emoji}</ThemedText>
-          <ThemedText style={styles.monsterName}>{displayName}</ThemedText>
+          <ThemedText style={[styles.monsterName, { color: accent }]}>
+            {displayName}
+          </ThemedText>
         </View>
       </View>
 
@@ -78,7 +82,7 @@ export default function HomeScreen() {
           {mood.charAt(0).toUpperCase() + mood.slice(1)}
         </ThemedText>
         <ThemedText style={styles.moodMessage}>
-          {config.message(displayName)}
+          {moodMessages[mood]}
         </ThemedText>
       </View>
     </ThemedView>

@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, Text, TouchableOpacity, View, useColorScheme } 
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { useMonsterTheme } from '@/hooks/use-monster-theme';
 import { usePetStore } from '@/store/use-pet-store';
 import { usePlayerStore } from '@/store/use-player-store';
 import { useTasksStore } from '@/store/use-tasks-store';
@@ -44,6 +45,7 @@ export default function TasksScreen() {
   const recordActivity = usePlayerStore((s) => s.recordActivity);
   const care = usePetStore((s) => s.care);
   const scheme = useColorScheme();
+  const { accent, accentLight, accentDark, text: accentText } = useMonsterTheme();
 
   const [completedIds, setCompletedIds] = useState<Set<string>>(new Set());
   const [celebration, setCelebration] = useState<string | null>(null);
@@ -58,7 +60,7 @@ export default function TasksScreen() {
       care();
       setCompletedIds((prev) => new Set(prev).add(task.id));
       if (timerRef.current) clearTimeout(timerRef.current);
-      setCelebration(`✨ +${task.pointValue} pts! Keep going!`);
+      setCelebration(`\u2728 +${task.pointValue} pts! Keep going!`);
       timerRef.current = setTimeout(() => setCelebration(null), 2000);
     },
     [completedIds, addTask, earnPoints, recordActivity, care],
@@ -69,14 +71,16 @@ export default function TasksScreen() {
   return (
     <ThemedView style={styles.container}>
       <View style={styles.header}>
-        <ThemedText type="title">Today's Tasks</ThemedText>
+        <ThemedText type="title">{"Today\u2019s Tasks"}</ThemedText>
         <View style={styles.subrow}>
           <ThemedText style={styles.count}>
             {completedIds.size}/{PRESET_TASKS.length} done
           </ThemedText>
           {celebration && (
-            <View style={styles.celebrationPill}>
-              <Text style={styles.celebrationText}>{celebration}</Text>
+            <View style={[styles.celebrationPill, { backgroundColor: isDark ? accentDark : accentLight }]}>
+              <Text style={[styles.celebrationText, { color: isDark ? accentLight : accentText }]}>
+                {celebration}
+              </Text>
             </View>
           )}
         </View>
@@ -98,8 +102,8 @@ export default function TasksScreen() {
               activeOpacity={done ? 1 : 0.7}
               disabled={done}
             >
-              <View style={[styles.checkbox, done && styles.checkboxDone]}>
-                {done && <Text style={styles.checkmark}>✓</Text>}
+              <View style={[styles.checkbox, done && { backgroundColor: accent, borderColor: accent }]}>
+                {done && <Text style={styles.checkmark}>{'\u2713'}</Text>}
               </View>
               <View style={styles.taskInfo}>
                 <ThemedText style={[styles.taskLabel, done && styles.taskLabelDone]}>
@@ -109,7 +113,7 @@ export default function TasksScreen() {
                   {CATEGORY_EMOJI[task.category]} {task.category.replace('_', ' ')}
                 </ThemedText>
               </View>
-              <Text style={[styles.pointsText, done ? styles.pointsDone : styles.pointsPending]}>
+              <Text style={[styles.pointsText, done ? { color: accent } : styles.pointsPending]}>
                 +{task.pointValue}
               </Text>
             </TouchableOpacity>
@@ -126,12 +130,11 @@ const styles = StyleSheet.create({
   subrow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   count: { opacity: 0.5, fontSize: 14 },
   celebrationPill: {
-    backgroundColor: '#d4f0b8',
     borderRadius: 20,
     paddingHorizontal: 12,
     paddingVertical: 4,
   },
-  celebrationText: { color: '#2a5a1a', fontWeight: '600', fontSize: 13 },
+  celebrationText: { fontWeight: '600', fontSize: 13 },
   list: { gap: 10, paddingBottom: 40 },
   taskRow: {
     flexDirection: 'row',
@@ -154,7 +157,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  checkboxDone: { backgroundColor: '#4caf50', borderColor: '#4caf50' },
   checkmark: { color: '#fff', fontSize: 13, fontWeight: '700' },
   taskInfo: { flex: 1, gap: 3 },
   taskLabel: { fontSize: 16, fontWeight: '500' },
@@ -162,5 +164,4 @@ const styles = StyleSheet.create({
   categoryLabel: { fontSize: 12, opacity: 0.5, textTransform: 'capitalize' },
   pointsText: { fontWeight: '700', fontSize: 15 },
   pointsPending: { color: '#0a7ea4' },
-  pointsDone: { color: '#4caf50' },
 });

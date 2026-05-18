@@ -10,6 +10,7 @@ import {
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { useMonsterTheme } from '@/hooks/use-monster-theme';
 import { usePetStore } from '@/store/use-pet-store';
 import { usePlayerStore } from '@/store/use-player-store';
 import { useStoreStore } from '@/store/use-store-store';
@@ -29,6 +30,7 @@ export default function StoreScreen() {
   const consumeItem = useStoreStore((s) => s.useItem);
   const scheme = useColorScheme();
   const isDark = scheme === 'dark';
+  const { accent, accentLight, accentDark, text: accentText } = useMonsterTheme();
 
   const [activeCategory, setActiveCategory] = useState<StoreCategory>('food');
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -44,26 +46,26 @@ export default function StoreScreen() {
     (item: StoreItem) => {
       // Check if non-repeatable and already owned
       if (!item.repeatable && isOwned(item.id)) {
-        showFeedback('✅ Already owned!');
+        showFeedback('\u2705 Already owned!');
         return;
       }
 
       // Check if player can afford it
       if (availablePoints < item.price) {
-        showFeedback('😅 Not enough points!');
+        showFeedback('\ud83d\ude05 Not enough points!');
         return;
       }
 
       // Process purchase
       const spent = spendPoints(item.price);
       if (!spent) {
-        showFeedback('😅 Not enough points!');
+        showFeedback('\ud83d\ude05 Not enough points!');
         return;
       }
 
       const bought = buyItem(item);
       if (!bought) {
-        showFeedback('❌ Something went wrong');
+        showFeedback('\u274c Something went wrong');
         return;
       }
 
@@ -72,9 +74,9 @@ export default function StoreScreen() {
         consumeItem(item.id);
         // Apply mood boost by calling care (resets lastCaredAt)
         care();
-        showFeedback(`🎉 ${item.name} used! +${item.moodBoost} mood`);
+        showFeedback(`\ud83c\udf89 ${item.name} used! +${item.moodBoost} mood`);
       } else {
-        showFeedback(`🛍️ ${item.name} added to collection!`);
+        showFeedback(`\ud83d\udecd\ufe0f ${item.name} added to collection!`);
       }
     },
     [availablePoints, spendPoints, buyItem, isOwned, consumeItem, care, showFeedback]
@@ -88,14 +90,20 @@ export default function StoreScreen() {
       <View style={styles.header}>
         <ThemedText type="title">Points Store</ThemedText>
         <View style={styles.pointsBadge}>
-          <Text style={styles.pointsBadgeText}>⭐ {availablePoints} pts</Text>
+          <Text style={styles.pointsBadgeText}>{'\u2b50'} {availablePoints} pts</Text>
         </View>
       </View>
 
       {/* Feedback pill */}
       {feedback && (
-        <View style={[styles.feedbackPill, isDark && styles.feedbackPillDark]}>
-          <Text style={[styles.feedbackText, isDark && styles.feedbackTextDark]}>
+        <View style={[
+          styles.feedbackPill,
+          { backgroundColor: isDark ? accentDark : accentLight },
+        ]}>
+          <Text style={[
+            styles.feedbackText,
+            { color: isDark ? accentLight : accentText },
+          ]}>
             {feedback}
           </Text>
         </View>
@@ -108,9 +116,8 @@ export default function StoreScreen() {
             key={cat.key}
             style={[
               styles.categoryTab,
-              activeCategory === cat.key && styles.categoryTabActive,
               isDark && styles.categoryTabDark,
-              activeCategory === cat.key && isDark && styles.categoryTabActiveDark,
+              activeCategory === cat.key && { backgroundColor: isDark ? accentDark : accentLight },
             ]}
             onPress={() => setActiveCategory(cat.key)}
             activeOpacity={0.7}
@@ -119,8 +126,8 @@ export default function StoreScreen() {
             <Text
               style={[
                 styles.categoryLabel,
-                activeCategory === cat.key && styles.categoryLabelActive,
                 isDark && styles.categoryLabelDark,
+                activeCategory === cat.key && { color: accentText },
               ]}
             >
               {cat.label}
@@ -153,13 +160,14 @@ export default function StoreScreen() {
 
               <View style={styles.itemFooter}>
                 {owned ? (
-                  <View style={styles.ownedBadge}>
-                    <Text style={styles.ownedText}>✓ Owned</Text>
+                  <View style={[styles.ownedBadge, { backgroundColor: isDark ? accentDark : accentLight }]}>
+                    <Text style={[styles.ownedText, { color: accentText }]}>{'\u2713'} Owned</Text>
                   </View>
                 ) : (
                   <TouchableOpacity
                     style={[
                       styles.buyButton,
+                      { backgroundColor: accent },
                       !canAfford && styles.buyButtonDisabled,
                     ]}
                     onPress={() => handleBuy(item)}
@@ -172,7 +180,7 @@ export default function StoreScreen() {
                         !canAfford && styles.buyButtonTextDisabled,
                       ]}
                     >
-                      {item.repeatable ? '🍴 Use' : '🛒 Buy'} · {item.price} pts
+                      {item.repeatable ? '\ud83c\udf74 Use' : '\ud83d\uded2 Buy'} {'\u00b7'} {item.price} pts
                     </Text>
                   </TouchableOpacity>
                 )}
@@ -209,23 +217,15 @@ const styles = StyleSheet.create({
     color: '#92400e',
   },
   feedbackPill: {
-    backgroundColor: '#d4f0b8',
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 8,
     alignSelf: 'center',
     marginBottom: 10,
   },
-  feedbackPillDark: {
-    backgroundColor: '#2a4a1a',
-  },
   feedbackText: {
-    color: '#2a5a1a',
     fontWeight: '600',
     fontSize: 14,
-  },
-  feedbackTextDark: {
-    color: '#b8f5c8',
   },
   categoryRow: {
     flexDirection: 'row',
@@ -243,12 +243,6 @@ const styles = StyleSheet.create({
   categoryTabDark: {
     backgroundColor: '#1e2124',
   },
-  categoryTabActive: {
-    backgroundColor: '#b8f5c8',
-  },
-  categoryTabActiveDark: {
-    backgroundColor: '#1a4d2e',
-  },
   categoryEmoji: {
     fontSize: 18,
   },
@@ -256,9 +250,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     color: '#666',
-  },
-  categoryLabelActive: {
-    color: '#1a5c3a',
   },
   categoryLabelDark: {
     color: '#aaa',
@@ -302,7 +293,6 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   buyButton: {
-    backgroundColor: '#52b788',
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 12,
@@ -319,13 +309,11 @@ const styles = StyleSheet.create({
     color: '#888',
   },
   ownedBadge: {
-    backgroundColor: '#d4f0b8',
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 12,
   },
   ownedText: {
-    color: '#2a5a1a',
     fontWeight: '700',
     fontSize: 13,
   },
