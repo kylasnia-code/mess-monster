@@ -10,31 +10,31 @@ const MOOD_CONFIG = {
     emoji: '🌟',
     bg: '#b8f5c8',
     darkBg: '#1a4d2e',
-    message: 'Nilly is absolutely thriving!',
+    message: (name: string) => `${name} is absolutely thriving!`,
   },
   happy: {
     emoji: '😊',
     bg: '#d4f0b8',
     darkBg: '#2a4a1a',
-    message: 'Nilly is happy and content.',
+    message: (name: string) => `${name} is happy and content.`,
   },
   neutral: {
     emoji: '😐',
     bg: '#f5f0c0',
     darkBg: '#3d3a10',
-    message: 'Nilly could use some attention.',
+    message: (name: string) => `${name} could use some attention.`,
   },
   sad: {
     emoji: '😢',
     bg: '#fcd9a8',
     darkBg: '#4d2e10',
-    message: 'Nilly is feeling neglected...',
+    message: (name: string) => `${name} is feeling neglected...`,
   },
   sick: {
     emoji: '🤒',
     bg: '#f5b8b8',
     darkBg: '#4d1a1a',
-    message: 'Nilly is sick. Please help her!',
+    message: (name: string) => `${name} is sick. Please help!`,
   },
 } as const;
 
@@ -43,8 +43,11 @@ export default function HomeScreen() {
   const mood = deriveMood(lastCaredAt);
   const availablePoints = usePlayerStore((s) => s.availablePoints());
   const streak = usePlayerStore((s) => s.streak);
+  const monsterName = usePlayerStore((s) => s.monsterName);
+  const selectedMonster = usePlayerStore((s) => s.selectedMonster);
 
   const config = MOOD_CONFIG[mood];
+  const displayName = monsterName || (selectedMonster === 'luna' ? 'Luna' : 'Nilly');
 
   return (
     <ThemedView
@@ -66,7 +69,7 @@ export default function HomeScreen() {
       <View style={styles.monsterContainer}>
         <View style={styles.monsterBody}>
           <ThemedText style={styles.monsterEmoji}>{config.emoji}</ThemedText>
-          <ThemedText style={styles.nilly}>Nilly</ThemedText>
+          <ThemedText style={styles.monsterName}>{displayName}</ThemedText>
         </View>
       </View>
 
@@ -74,7 +77,9 @@ export default function HomeScreen() {
         <ThemedText type="subtitle" style={styles.moodLabel}>
           {mood.charAt(0).toUpperCase() + mood.slice(1)}
         </ThemedText>
-        <ThemedText style={styles.moodMessage}>{config.message}</ThemedText>
+        <ThemedText style={styles.moodMessage}>
+          {config.message(displayName)}
+        </ThemedText>
       </View>
     </ThemedView>
   );
@@ -110,7 +115,7 @@ const styles = StyleSheet.create({
     fontSize: 140,
     lineHeight: 160,
   },
-  nilly: {
+  monsterName: {
     fontSize: 28,
     fontWeight: 'bold',
     letterSpacing: 2,

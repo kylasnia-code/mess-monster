@@ -25,4 +25,5 @@ export interface PlayerProfile {
   streak: number; // consecutive days with at least one task
   lastActiveDay: string; // YYYY-MM-DD — used to calculate streak
   selectedMonster: 'nilly' | 'luna' | null;
+  monsterName: string; // user-chosen or randomized name for their monster
 }

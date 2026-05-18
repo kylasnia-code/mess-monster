@@ -9,6 +9,7 @@ export default function OnboardingScreen() {
   const router = useRouter();
   const selectMonster = usePlayerStore((s) => s.selectMonster);
   const selectedMonster = usePlayerStore((s) => s.selectedMonster);
+  const monsterName = usePlayerStore((s) => s.monsterName);
   const [hydrated, setHydrated] = useState(
     () => usePlayerStore.persist.hasHydrated()
   );
@@ -20,13 +21,19 @@ export default function OnboardingScreen() {
 
   if (!hydrated) return null;
 
-  if (selectedMonster) {
+  // If monster is selected AND named, skip to main app
+  if (selectedMonster && monsterName) {
     return <Redirect href="/(tabs)" />;
+  }
+
+  // If monster is selected but NOT named, go to naming screen
+  if (selectedMonster && !monsterName) {
+    return <Redirect href="/naming" />;
   }
 
   const choose = (monster: 'nilly' | 'luna') => {
     selectMonster(monster);
-    router.replace('/(tabs)');
+    router.replace('/naming');
   };
 
   return (
